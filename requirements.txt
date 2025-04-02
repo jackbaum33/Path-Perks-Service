@@ -1,0 +1,7 @@
+flask
+flask-cors
+pandas
+gspread
+stripe
+python-dotenv
+requests
