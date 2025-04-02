@@ -5,3 +5,4 @@ gspread
 stripe
 python-dotenv
 requests
+gunicorn
