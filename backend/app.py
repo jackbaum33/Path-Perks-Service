@@ -16,6 +16,15 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+@app.route('/api/products')
+def products():
+    # Your product data logic here
+    return jsonify([{"id": 1, "name": "Sample"}])  # Test response
+
+@app.route('/')
+def home():
+    return "Service Online"  # Basic status check
+
 # Configure Stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
