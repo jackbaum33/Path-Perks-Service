@@ -55,13 +55,14 @@ def get_google_sheet_data():
         for _, row in df.iterrows():
             try:
                 products.append({
-                    'id': str(row['id']),
-                    'name': row['name'],
-                    'price': int(float(row['price']) * 100),  # Convert to cents
-                    'image_url': row['image_url'],
-                    'owner_id': row['owner_id']
+                    'id': str(row['ID']),  # Changed from 'id' to 'ID'
+                    'name': row['Name'],    # Changed from 'name' to 'Name'
+                    'price': int(float(row['Price']) * 100),  # Changed from 'price' to 'Price'
+                    'image_url': row['Image URL'],  # Changed from 'image_url' to 'Image URL'
+                    'owner_id': row['Owner ID']     # Changed from 'owner_id' to 'Owner ID'
                 })
-            except (KeyError, ValueError):
+            except (KeyError, ValueError) as e:
+                print(f"Skipping row due to error: {str(e)}")
                 continue
         
         return products
