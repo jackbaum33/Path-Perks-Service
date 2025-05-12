@@ -54,12 +54,14 @@ def get_google_sheet_data():
         products = []
         for _, row in df.iterrows():
             try:
+                # Use timestamp or name as fallback ID
+                product_id = row.get('Timestamp', '') + '-' + row.get('Name', '')
+
                 products.append({
-                    'id': str(row['ID']),  # Changed from 'id' to 'ID'
-                    'name': row['Name'],    # Changed from 'name' to 'Name'
-                    'price': int(float(row['Price']) * 100),  # Changed from 'price' to 'Price'
-                    'image_url': row['Image URL'],  # Changed from 'image_url' to 'Image URL'
-                    'owner_id': row['Owner ID']     # Changed from 'owner_id' to 'Owner ID'
+                    'id': str(product_id),
+                    'name': row['Item Link'],  # or use row['Name']
+                    'price': int(float(row['Revshot Markup']) * 100),  # Convert dollars to cents
+                    'image_url': row['Item Image']
                 })
             except (KeyError, ValueError) as e:
                 print(f"Skipping row due to error: {str(e)}")
@@ -70,6 +72,7 @@ def get_google_sheet_data():
     except Exception as e:
         print(f"Error fetching Google Sheet: {str(e)}")
         return []
+
     
 def read_cache():
     """Read cached product data if valid"""
