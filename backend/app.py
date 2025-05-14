@@ -47,35 +47,36 @@ def get_google_sheet_data():
             data = response.json()
             df = pd.DataFrame(data['values'][1:], columns=data['values'][0])
             print("Loaded Google Sheet DataFrame:")
-            print(df.head())  # <-- ADD THIS LINE
-        
+            print(df.head())
+
         else:
             raise ValueError("Missing Google Sheets configuration")
-        
-        # Process the data
+
+        # Process the rows
         products = []
         for _, row in df.iterrows():
             try:
-                # Use timestamp or name as fallback ID
                 product_id = row.get('Timestamp', '') + '-' + row.get('Name', '')
 
                 products.append({
                     'id': str(product_id),
-                    'name': row['Item Link'],  # or use row['Name']
-                    'price': int(float(row['Revshot Markup']) * 100),  # Convert dollars to cents
+                    'name': row['Name'],
+                    'price': int(float(row['Revshot Markup']) * 100),
                     'image_url': row['Item Image']
                 })
             except (KeyError, ValueError) as e:
                 print(f"Skipping row due to error: {str(e)}")
                 continue
+
         if not products:
             print("No valid products found in sheet.")
-        
+
         return products
-    
+
     except Exception as e:
         print(f"Error fetching Google Sheet: {str(e)}")
         return []
+
 
 
 @app.route('/api/products', methods=['GET'])
