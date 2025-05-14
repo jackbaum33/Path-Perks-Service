@@ -36,19 +36,13 @@ def get_google_sheet_data():
     """Fetch data from Google Sheet using pandas"""
     try:
         if GSHEET_URL:
-            sheet_url = f"{GSHEET_URL}/export?format=csv"
+            sheet_url = GSHEET_URL
             df = pd.read_csv(sheet_url)
-        elif GSHEET_ID and GSHEET_API_KEY:
-            sheet_url = f"https://sheets.googleapis.com/v4/spreadsheets/{GSHEET_ID}/values/Sheet1?key={GSHEET_API_KEY}"
-            response = requests.get(sheet_url)
-            data = response.json()
-            df = pd.DataFrame(data['values'][1:], columns=data['values'][0])
         else:
             raise ValueError("Missing Google Sheets configuration")
 
         # Normalize column names
         df.columns = df.columns.str.strip()
-        print("Sheet Columns:", list(df.columns))
 
         products = []
         for _, row in df.iterrows():
