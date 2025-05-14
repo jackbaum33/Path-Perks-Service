@@ -46,6 +46,8 @@ def get_google_sheet_data():
             response = requests.get(sheet_url)
             data = response.json()
             df = pd.DataFrame(data['values'][1:], columns=data['values'][0])
+            print("Loaded Google Sheet DataFrame:")
+            print(df.head())  # <-- ADD THIS LINE
         
         else:
             raise ValueError("Missing Google Sheets configuration")
@@ -66,6 +68,8 @@ def get_google_sheet_data():
             except (KeyError, ValueError) as e:
                 print(f"Skipping row due to error: {str(e)}")
                 continue
+        if not products:
+            print("No valid products found in sheet.")
         
         return products
     
