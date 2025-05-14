@@ -35,24 +35,21 @@ CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 3600))
 def get_google_sheet_data():
     """Fetch data from Google Sheet using pandas"""
     try:
-        # Option 1: Publicly shared sheet (read-only)
         if GSHEET_URL:
             sheet_url = f"{GSHEET_URL}/export?format=csv"
             df = pd.read_csv(sheet_url)
-        
-        # Option 2: Using Sheet ID with API key (if needed)
         elif GSHEET_ID and GSHEET_API_KEY:
             sheet_url = f"https://sheets.googleapis.com/v4/spreadsheets/{GSHEET_ID}/values/Sheet1?key={GSHEET_API_KEY}"
             response = requests.get(sheet_url)
             data = response.json()
             df = pd.DataFrame(data['values'][1:], columns=data['values'][0])
-            print("Loaded Google Sheet DataFrame:")
-            print(df.head())
-
         else:
             raise ValueError("Missing Google Sheets configuration")
 
-        # Process the rows
+        # Normalize column names
+        df.columns = df.columns.str.strip()
+        print("Sheet columns:", list(df.columns))
+
         products = []
         for _, row in df.iterrows():
             try:
@@ -70,12 +67,12 @@ def get_google_sheet_data():
 
         if not products:
             print("No valid products found in sheet.")
-
         return products
 
     except Exception as e:
         print(f"Error fetching Google Sheet: {str(e)}")
         return []
+
 
 
 
