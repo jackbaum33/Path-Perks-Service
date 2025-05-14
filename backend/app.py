@@ -48,7 +48,6 @@ def get_google_sheet_data():
 
         # Normalize column names
         df.columns = df.columns.str.strip()
-        print("Sheet columns:", list(df.columns))
 
         products = []
         for _, row in df.iterrows():
@@ -63,6 +62,7 @@ def get_google_sheet_data():
                 })
             except (KeyError, ValueError) as e:
                 print(f"Skipping row due to error: {str(e)}")
+                print("Available keys:", row.keys())
                 continue
 
         if not products:
