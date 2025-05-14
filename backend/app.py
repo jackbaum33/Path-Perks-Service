@@ -33,15 +33,15 @@ CACHE_FILE = 'cache/product_cache.json'
 CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 3600))
 
 def get_google_sheet_data():
-    """Fetch data from Google Sheet using pandas"""
-    base_dir = os.path.dirname(os.path.abspath(__file__))  # Gets the current file's directory
+    """Fetch data from local CSV using pandas"""
+    import os
+    import pandas as pd
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(base_dir, 'data', 'data.csv')
 
     try:
         df = pd.read_csv(csv_path)
-    except Exception as e:
-        print("Error loading CSV:", e)
-
 
         # Normalize column names
         df.columns = df.columns.str.strip()
@@ -69,6 +69,7 @@ def get_google_sheet_data():
     except Exception as e:
         print(f"Error fetching Google Sheet: {str(e)}")
         return []
+
 
 
 
