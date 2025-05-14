@@ -48,6 +48,7 @@ def get_google_sheet_data():
 
         # Normalize column names
         df.columns = df.columns.str.strip()
+        print("Sheet Columns:", list(df.columns))
 
         products = []
         for _, row in df.iterrows():
