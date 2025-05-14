@@ -34,11 +34,14 @@ CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 3600))
 
 def get_google_sheet_data():
     """Fetch data from Google Sheet using pandas"""
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # Gets the current file's directory
+    csv_path = os.path.join(base_dir, 'data', 'data.csv')
+
     try:
-        if GSHEET_URL:
-            df = pd.read_csv('../data/data.csv')
-        else:
-            raise ValueError("Missing Google Sheets configuration")
+        df = pd.read_csv(csv_path)
+    except Exception as e:
+        print("Error loading CSV:", e)
+
 
         # Normalize column names
         df.columns = df.columns.str.strip()
