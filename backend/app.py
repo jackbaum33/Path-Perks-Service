@@ -77,49 +77,12 @@ def get_google_sheet_data():
         print(f"Error fetching Google Sheet: {str(e)}")
         return []
 
-    
-def read_cache():
-    """Read cached product data if valid"""
-    if not os.path.exists(CACHE_FILE):
-        return None
-        
-    try:
-        with open(CACHE_FILE, 'r') as f:
-            cache_data = json.load(f)
-            
-        cache_time = datetime.fromisoformat(cache_data['timestamp'])
-        if datetime.now() - cache_time > timedelta(seconds=CACHE_TIMEOUT):
-            return None
-            
-        return cache_data['products']
-    except:
-        return None
-
-def write_cache(products):
-    """Write product data to cache"""
-    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)  # <-- Ensure directory exists
-
-    cache_data = {
-        'timestamp': datetime.now().isoformat(),
-        'products': products
-    }
-
-    with open(CACHE_FILE, 'w') as f:
-        json.dump(cache_data, f)
-
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
-    """Endpoint to get all products"""
-    # Try to read from cache first
-    cached_products = read_cache()
-    if cached_products is not None:
-        return jsonify(cached_products)
-    
-    # Fetch from Google Sheets if cache is invalid
+    """Always fetch fresh data from Google Sheets"""
     try:
         products = get_google_sheet_data()
-        write_cache(products)
         return jsonify(products)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
