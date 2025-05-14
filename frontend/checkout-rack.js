@@ -2,7 +2,7 @@ class CheckoutRack {
     constructor(options = {}) {
         // Default options
         this.options = {
-            apiBaseUrl: options.apiBaseUrl || 'http://localhost:5000/api',
+            apiBaseUrl: options.apiBaseUrl || 'https://revshot-service.onrender.com/api',
             originalAmount: options.originalAmount || 0,
             cartUpdateCallback: options.cartUpdateCallback || null,
             successUrl: options.successUrl || window.location.href,
