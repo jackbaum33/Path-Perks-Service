@@ -93,13 +93,16 @@ def read_cache():
 
 def write_cache(products):
     """Write product data to cache"""
+    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)  # <-- Ensure directory exists
+
     cache_data = {
         'timestamp': datetime.now().isoformat(),
         'products': products
     }
-    
+
     with open(CACHE_FILE, 'w') as f:
         json.dump(cache_data, f)
+
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
