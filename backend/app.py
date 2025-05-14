@@ -36,7 +36,7 @@ def get_google_sheet_data():
     """Fetch data from Google Sheet using pandas"""
     try:
         if GSHEET_URL:
-            df = pd.read_csv('data.csv')
+            df = pd.read_csv('../data/data.csv')
         else:
             raise ValueError("Missing Google Sheets configuration")
 
