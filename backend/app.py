@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
-
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -83,70 +83,63 @@ def get_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/checkout', methods=['POST'])
-def create_checkout():
-    """Endpoint to handle the checkout process with Stripe Connect"""
-    data = request.json
-    
+@app.route('/api/create-checkout-session', methods=['POST'])
+def create_checkout_session():
     try:
-        # Validate input
-        if not data or 'items' not in data or 'original_amount' not in data:
-            return jsonify({'error': 'Invalid request data'}), 400
-            
-        items = data['items']
-        original_amount = data['original_amount']
-        
-        # Calculate total amount from our items
-        our_amount = sum(item['price'] for item in items)
-        total_amount = our_amount + original_amount
-        
-        # Create line items for Stripe
+        data = request.get_json()
+        upsell_items = data.get('items', [])
+        original_total = data.get('originalTotal', 0)
+
+        if not isinstance(upsell_items, list):
+            return jsonify({'error': 'Invalid items format'}), 400
+
         line_items = []
-        
-        # Add original item (from the main website)
-        if original_amount > 0:
+
+        # Optional: add original Squarespace cart as a single line item
+        if original_total > 0:
             line_items.append({
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': 'Original Purchase',
+                        'name': 'Original Cart Total',
                     },
-                    'unit_amount': original_amount,
+                    'unit_amount': original_total,
                 },
                 'quantity': 1,
             })
-        
-        # Add our items
-        for item in items:
-            line_items.append({
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': item['name'],
+
+        # Add upsell selections
+        for item in upsell_items:
+            name = item.get('name')
+            price = item.get('price')
+            if name and isinstance(price, int):
+                line_items.append({
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {'name': name},
+                        'unit_amount': price,
                     },
-                    'unit_amount': item['price'],
-                },
-                'quantity': 1,
-            })
-        
-        # Create Stripe checkout session with Connect
+                    'quantity': 1
+                })
+
+        if not line_items:
+            return jsonify({'error': 'No valid items for checkout'}), 400
+
+        # Create Stripe checkout session
+        origin = request.headers.get('Origin', 'https://example.com')  # Fallback to default
+
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            line_items=line_items,
             mode='payment',
-            success_url=data.get('success_url', 'https://example.com/success'),
-            cancel_url=data.get('cancel_url', 'https://example.com/cancel'),
-            payment_intent_data={
-                'application_fee_amount': our_amount,
-                'transfer_data': {
-                    'destination': os.getenv('STRIPE_CONNECT_ACCOUNT_ID'),
-                },
-            },
+            line_items=line_items,
+            success_url=f'{origin}/thank-you',
+            cancel_url=f'{origin}/checkout-canceled'
         )
         
-        return jsonify({'session_id': session.id, 'url': session.url})
-        
+        return jsonify({'url': session.url})
+
     except Exception as e:
+        print("Stripe error:", e)
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
