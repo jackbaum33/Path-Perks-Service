@@ -20,9 +20,6 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 def home():
     return "Service Online"  # Basic status check
 
-# Configure Stripe
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
 # Google Sheets configuration
 GSHEET_URL = os.getenv('GOOGLE_SHEET_URL')
 GSHEET_ID = os.getenv('GOOGLE_SHEET_ID')
