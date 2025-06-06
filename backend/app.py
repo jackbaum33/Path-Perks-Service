@@ -50,8 +50,7 @@ def get_google_sheet_data():
 
                 products.append({
                     'id': str(product_id),
-                    'title': row['Item Title'],
-                    'name': row['Name'],
+                    'name': row['Item Title'],
                     'price': int(float(row['Revshot Markup']) * 100),
                     'image_url': row['Item Image']
                 })
