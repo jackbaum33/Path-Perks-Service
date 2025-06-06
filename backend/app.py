@@ -1,18 +1,18 @@
 import os
 from flask import Flask, jsonify,request
-import requests
 from flask_cors import CORS
 from dotenv import load_dotenv
-import pandas as pd
 import stripe
-import json
-import time
 import os.path
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -138,6 +138,52 @@ def create_checkout_session():
     except Exception as e:
         print("Stripe error:", e)
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.data
+    sig_header = request.headers.get('stripe-signature')
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except ValueError as e:
+        return "Invalid payload", 400
+    except stripe.error.SignatureVerificationError:
+        return "Invalid signature", 400
+
+    # Only handle completed checkout
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        customer_email = session.get('customer_details', {}).get('email', 'unknown@example.com')
+        line_items = stripe.checkout.Session.list_line_items(session['id'])
+
+        send_confirmation_email(customer_email, line_items.data)
+
+    return '', 200
+
+def send_confirmation_email(to_email, line_items):
+    sender_email = os.getenv('EMAIL_SENDER')
+    sender_password = os.getenv('EMAIL_PASSWORD')
+
+    subject = "Thank you for your order!"
+    body = "Your purchase includes:\n\n"
+    for item in line_items:
+        body += f"- {item.description}: ${item.amount_total / 100:.2f}\n"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, to_email, msg.as_string())
+        print("Confirmation email sent to", to_email)
+    except Exception as e:
+        print("Failed to send email:", e)
 
 if __name__ == '__main__':
     app.run(debug=True)
