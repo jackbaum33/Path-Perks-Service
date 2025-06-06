@@ -1,0 +1,95 @@
+<!-- Upsell + Stripe Checkout Integration -->
+<div id="upsell-products"></div>
+<button id="checkout-button" style="margin-top: 1em; padding: 10px 20px;">Continue to Checkout</button>
+
+<script>
+const API_URL = "https://revshot-service.onrender.com";
+let selectedItems = [];
+let originalTotal = 0;
+
+// Prompt user for their cart total on load
+window.addEventListener('DOMContentLoaded', () => {
+  const input = prompt("Enter your original Squarespace cart total in dollars (e.g., 24.99):");
+  if (input) {
+    const parsed = parseFloat(input);
+    if (!isNaN(parsed)) {
+      originalTotal = Math.round(parsed * 100); // Convert dollars to cents
+    } else {
+      alert("Invalid input. Proceeding without original cart total.");
+    }
+  }
+
+  loadProducts(); // Fetch upsell options
+});
+
+// Load upsell items
+async function loadProducts() {
+  try {
+    const res = await fetch(`${API_URL}/api/products`);
+    const products = await res.json();
+    const container = document.getElementById("upsell-products");
+
+    products.forEach((item, index) => {
+      const wrapper = document.createElement("div");
+      wrapper.style.margin = "10px 0";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `product-${index}`;
+      checkbox.dataset.name = item.name;
+      checkbox.dataset.price = item.price;
+      checkbox.onchange = handleSelection;
+
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      label.innerText = `${item.name} - $${(item.price / 100).toFixed(2)}`;
+
+      wrapper.appendChild(checkbox);
+      wrapper.appendChild(label);
+      container.appendChild(wrapper);
+    });
+  } catch (e) {
+    console.error("Error loading products", e);
+    document.getElementById("upsell-products").innerText = "Error loading products";
+  }
+}
+
+// Track which upsell items were selected
+function handleSelection(e) {
+  const checkbox = e.target;
+  const name = checkbox.dataset.name;
+  const price = parseInt(checkbox.dataset.price);
+
+  if (checkbox.checked) {
+    selectedItems.push({ name, price });
+  } else {
+    selectedItems = selectedItems.filter(i => i.name !== name);
+  }
+}
+
+// Handle checkout
+document.getElementById("checkout-button").addEventListener("click", async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/create-checkout-session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        items: selectedItems,
+        originalTotal: originalTotal
+      })
+    });
+
+    const data = await response.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Checkout failed. Please try again.");
+    }
+  } catch (err) {
+    console.error("Checkout error:", err);
+    alert("An error occurred during checkout.");
+  }
+});
+</script>
