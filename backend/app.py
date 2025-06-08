@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
-latest_cart_total = None
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 app = Flask(__name__)

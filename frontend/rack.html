@@ -5,20 +5,13 @@
 <script>
 const API_URL = "https://revshot-service.onrender.com";
 let selectedItems = [];
-let originalTotal = 0;
 
-// Fetch original cart total automatically
-window.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const res = await fetch(`${API_URL}/api/cart`);
-    const data = await res.json();
-    if (typeof data.total === 'number') {
-      originalTotal = data.total;
-    }
-  } catch (err) {
-    console.error("Failed to fetch original cart total", err);
-  }
+// ✅ Get cart total from URL
+const urlParams = new URLSearchParams(window.location.search);
+const originalTotal = parseInt(urlParams.get('amount')) || 0;
 
+// Load upsell items
+window.addEventListener('DOMContentLoaded', () => {
   loadProducts();
 });
 
