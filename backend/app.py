@@ -185,5 +185,23 @@ def send_confirmation_email(to_email, line_items):
     except Exception as e:
         print("Failed to send email:", e)
 
+@app.route('/api/cart', methods=['POST', 'GET'])
+def cart_total():
+    global latest_cart_total
+
+    if request.method == 'POST':
+        data = request.get_json()
+        amount = data.get('amount')
+        if amount is None:
+            return jsonify({'error': 'Missing amount'}), 400
+
+        latest_cart_total = amount
+        return jsonify({'message': 'Cart total stored'}), 200
+
+    elif request.method == 'GET':
+        if latest_cart_total is None:
+            return jsonify({'error': 'No cart total stored yet'}), 404
+        return jsonify({'amount': latest_cart_total}), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
