@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
+latest_cart_total = None
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 app = Flask(__name__)
@@ -187,7 +188,6 @@ def send_confirmation_email(to_email, line_items):
 
 @app.route('/api/cart', methods=['POST', 'GET'])
 def cart_total():
-    global latest_cart_total
 
     if request.method == 'POST':
         data = request.get_json()
