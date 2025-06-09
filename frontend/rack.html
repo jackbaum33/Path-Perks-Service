@@ -60,12 +60,14 @@ function handleSelection(e) {
 
 document.getElementById("checkout-button").addEventListener("click", async () => {
   try {
+  const siteName = window.location.hostname;
     const response = await fetch(`${API_URL}/api/create-checkout-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: selectedItems,
-        originalTotal: originalTotal
+        originalTotal: originalTotal,
+        siteName: siteName
       })
     });
 
