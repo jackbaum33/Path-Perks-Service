@@ -7,7 +7,6 @@ import os.path
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
@@ -86,6 +85,7 @@ def create_checkout_session():
         data = request.get_json()
         upsell_items = data.get('items', [])
         original_total = data.get('originalTotal', 0)
+        site_name = data.get('siteName')
 
         if not isinstance(upsell_items, list):
             return jsonify({'error': 'Invalid items format'}), 400
@@ -98,7 +98,7 @@ def create_checkout_session():
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': 'Original Cart Total',
+                        'name': f'Original Cart Total from {site_name}',
                     },
                     'unit_amount': original_total,
                 },
@@ -185,22 +185,6 @@ def send_confirmation_email(to_email, line_items):
     except Exception as e:
         print("Failed to send email:", e)
 
-@app.route('/api/cart', methods=['POST', 'GET'])
-def cart_total():
-
-    if request.method == 'POST':
-        data = request.get_json()
-        amount = data.get('amount')
-        if amount is None:
-            return jsonify({'error': 'Missing amount'}), 400
-
-        latest_cart_total = amount
-        return jsonify({'message': 'Cart total stored'}), 200
-
-    elif request.method == 'GET':
-        if latest_cart_total is None:
-            return jsonify({'error': 'No cart total stored yet'}), 404
-        return jsonify({'amount': latest_cart_total}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
