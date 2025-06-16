@@ -147,35 +147,75 @@ def stripe_webhook():
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except ValueError as e:
+    except ValueError:
         return "Invalid payload", 400
     except stripe.error.SignatureVerificationError:
         return "Invalid signature", 400
 
-    # Only handle completed checkout
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         customer_email = session.get('customer_details', {}).get('email', 'unknown@example.com')
-        line_items = stripe.checkout.Session.list_line_items(session['id'])
+        customer_name = session.get('customer_details', {}).get('name', 'Valued Customer')  # NEW
+        metadata = session.get('metadata', {}) or {}
+        website_name = metadata.get('site', 'Your Store')
 
-        send_confirmation_email(customer_email, line_items.data)
+        line_items = stripe.checkout.Session.list_line_items(session['id'])
+        send_confirmation_email(customer_email, customer_name, line_items.data, website_name)
+
 
     return '', 200
 
-def send_confirmation_email(to_email, line_items):
+def generate_html_email(customer_name, website_name, customer_items, upsell_items):
+    subject = f"Your order summary from {website_name}"
+
+    html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <p>Hi {customer_name},</p>
+        <p>Thanks for your order! Below is your complete purchase summary — both from <strong>{website_name}</strong> and the additional services you selected from the <em>Marketplace</em>.</p>
+
+        <h3>✅ Your Items from {website_name}</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 1em;">
+            <tr><th align="left">Item</th><th align="left">Quantity</th><th align="left">Price</th></tr>
+            {''.join(f"<tr><td>{item['name']}</td><td>1</td><td>${item['price']:.2f}</td></tr>" for item in customer_items)}
+        </table>
+
+        <h3>🔒 Your Add-ons from the Marketplace</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr><th align="left">Add-on</th><th align="left">Price</th></tr>
+            {''.join(f"<tr><td>{item['name']}</td><td>${item['price']:.2f}</td></tr>" for item in upsell_items)}
+        </table>
+
+        <p style="margin-top: 2em;">Need help? Contact us at <a href="mailto:support@addrevshot.com">support@addrevshot.com</a></p>
+
+        <p>Thanks again for shopping with us — and for powering up your order with RevShot!</p>
+        <p>🚀<br>The RevShot Team<br><a href="mailto:support@addrevshot.com">support@addrevshot.com</a></p>
+    </body>
+    </html>
+    """
+    return subject, html
+
+
+def send_confirmation_email(to_email, customer_name, line_items, website_name):
     sender_email = os.getenv('EMAIL_SENDER')
     sender_password = os.getenv('EMAIL_PASSWORD')
 
-    subject = "Thank you for your order!"
-    body = "Your purchase includes:\n\n"
+    # Split items into original cart and upsells
+    customer_items = []
+    upsell_items = []
     for item in line_items:
-        body += f"- {item.description}: ${item.amount_total / 100:.2f}\n"
+        if item.description.lower().startswith('original cart total'):
+            customer_items.append({'name': 'Original Cart', 'price': item.amount_total / 100})
+        else:
+            upsell_items.append({'name': item.description, 'price': item.amount_total / 100})
 
-    msg = MIMEMultipart()
+    subject, html_body = generate_html_email(customer_name, website_name, customer_items, upsell_items)
+
+    msg = MIMEMultipart('alternative')
     msg['From'] = sender_email
     msg['To'] = to_email
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    msg.attach(MIMEText(html_body, 'html'))
 
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
@@ -184,6 +224,7 @@ def send_confirmation_email(to_email, line_items):
         print("Confirmation email sent to", to_email)
     except Exception as e:
         print("Failed to send email:", e)
+
 
 
 if __name__ == '__main__':
