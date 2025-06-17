@@ -186,10 +186,10 @@ def generate_html_email(customer_name, website_name, customer_items, upsell_item
             {''.join(f"<tr><td>{item['name']}</td><td>${item['price']:.2f}</td></tr>" for item in upsell_items)}
         </table>
 
-        <p style="margin-top: 2em;">Need help? Contact us at <a href="mailto:support@addrevshot.com">support@addrevshot.com</a></p>
+        <p style="margin-top: 2em;">Need help? Contact us at <a href="mailto:support@path-perks.com">support@path-perks.com</a></p>
 
-        <p>Thanks again for shopping with us — and for powering up your order with RevShot!</p>
-        <p>🚀<br>The RevShot Team<br><a href="mailto:support@addrevshot.com">support@addrevshot.com</a></p>
+        <p>Thanks again for shopping with us — and for enhancing your order with PathPerks!</p>
+        <p>🚀<br>The PathPerks Team<br><a href="mailto:support@path-perks.com">support@path-perks.com</a></p>
     </body>
     </html>
     """
