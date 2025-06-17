@@ -29,48 +29,46 @@ CACHE_FILE = 'cache/product_cache.json'
 CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 3600))
 
 def get_google_sheet_data():
-    """Fetch data from local CSV using pandas"""
+    """Fetch enhancement data from local CSV using pandas"""
     import os
     import pandas as pd
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(base_dir, 'data', 'data.csv')
+    csv_path = os.path.join(base_dir, 'data', 'enhancements.csv')
 
     try:
         df = pd.read_csv(csv_path)
+        df.columns = df.columns.str.strip()  # Normalize whitespace
 
-        # Normalize column names
-        df.columns = df.columns.str.strip()
-
-        products = []
+        enhancements = []
         for _, row in df.iterrows():
             try:
-                product_id = row.get('Timestamp', '') + '-' + row.get('Name', '')
+                name = row['Enhancement Name']
+                description = row['Enhancement Description']
+                price = float(row['Enhancement Price'])  # assumed in dollars
 
-                products.append({
-                    'id': str(product_id),
-                    'name': row['Item Title'],
-                    'price': int(float(row['Revshot Markup']) * 100),
-                    'image_url': row['Item Image']
+                enhancements.append({
+                    'name': name,
+                    'description': description,
+                    'price': int(price * 100)  # convert to cents
                 })
             except (KeyError, ValueError) as e:
-                print(f"Skipping row due to error: {str(e)}")
-                print("Available keys:", row.keys())
+                print(f"Skipping row due to error: {e}")
                 continue
 
-        if not products:
-            print("No valid products found in sheet.")
-        return products
+        if not enhancements:
+            print("No valid enhancements found in CSV.")
+        return enhancements
 
     except Exception as e:
-        print(f"Error fetching Google Sheet: {str(e)}")
+        print(f"Error reading CSV file: {e}")
         return []
 
 
 
 
 
-@app.route('/api/products', methods=['GET'])
+@app.route('/api/enhancements', methods=['GET'])
 def get_products():
     """Always fetch fresh data from Google Sheets"""
     try:
