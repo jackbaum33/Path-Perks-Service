@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify,request
+from flask import Flask, jsonify,request,send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 import stripe
@@ -222,6 +222,10 @@ def send_confirmation_email(to_email, customer_name, line_items, website_name):
         print("Confirmation email sent to", to_email)
     except Exception as e:
         print("Failed to send email:", e)
+
+@app.route('/images/<filename>')
+def serve_image(filename):
+    return send_from_directory('data/images', filename)
 
 
 
