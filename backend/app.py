@@ -83,7 +83,7 @@ def create_checkout_session():
         data = request.get_json()
         upsell_items = data.get('items', [])
         original_total = data.get('originalTotal', 0)
-        site_name = data.get('siteName')
+        site_name = str(data.get('siteName'))
 
         if not isinstance(upsell_items, list):
             return jsonify({'error': 'Invalid items format'}), 400
@@ -92,11 +92,12 @@ def create_checkout_session():
 
         # Optional: add original Squarespace cart as a single line item
         if original_total > 0:
+            cleaned_site_name = site_name.removeprefix("www.")
             line_items.append({
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': f'Original Cart Total from {site_name}',
+                        'name': f'Original Cart Total from {cleaned_site_name}',
                     },
                     'unit_amount': original_total,
                 },
