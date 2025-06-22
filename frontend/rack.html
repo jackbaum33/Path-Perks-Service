@@ -10,39 +10,50 @@ let selectedItems = [];
 const urlParams = new URLSearchParams(window.location.search);
 const originalTotal = parseInt(urlParams.get('amount')) || 0;
 
-// Load upsell items
+// Load enhancements
 window.addEventListener('DOMContentLoaded', () => {
-  loadProducts();
+  loadEnhancements();
 });
 
-async function loadProducts() {
+async function loadEnhancements() {
   try {
-    const res = await fetch(`${API_URL}/api/products`);
-    const products = await res.json();
+    const res = await fetch(`${API_URL}/api/enhancements`);
+    const enhancements = await res.json();
     const container = document.getElementById("upsell-products");
 
-    products.forEach((item, index) => {
+    enhancements.forEach((item, index) => {
       const wrapper = document.createElement("div");
-      wrapper.style.margin = "10px 0";
+      wrapper.style.margin = "20px 0";
+      wrapper.style.display = "flex";
+      wrapper.style.alignItems = "center";
+      wrapper.style.gap = "1em";
+
+      const img = document.createElement("img");
+      img.src = `${API_URL}/images/${index + 1}.png`;
+      img.alt = item.name;
+      img.style.width = "100px";
+      img.style.height = "auto";
+      img.style.borderRadius = "8px";
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.id = `product-${index}`;
+      checkbox.id = `enhancement-${index}`;
       checkbox.dataset.name = item.name;
       checkbox.dataset.price = item.price;
       checkbox.onchange = handleSelection;
 
       const label = document.createElement("label");
       label.htmlFor = checkbox.id;
-      label.innerText = `${item.name} - $${(item.price / 100).toFixed(2)}`;
+      label.innerHTML = `<strong>${item.name}</strong><br><small>${item.description}</small><br><span>$${(item.price / 100).toFixed(2)}</span>`;
 
+      wrapper.appendChild(img);
       wrapper.appendChild(checkbox);
       wrapper.appendChild(label);
       container.appendChild(wrapper);
     });
   } catch (e) {
-    console.error("Error loading products", e);
-    document.getElementById("upsell-products").innerText = "Error loading products";
+    console.error("Error loading enhancements", e);
+    document.getElementById("upsell-products").innerText = "Error loading enhancements";
   }
 }
 
@@ -60,7 +71,7 @@ function handleSelection(e) {
 
 document.getElementById("checkout-button").addEventListener("click", async () => {
   try {
-  const siteName = window.location.hostname;
+    const siteName = window.location.hostname;
     const response = await fetch(`${API_URL}/api/create-checkout-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
