@@ -228,6 +228,27 @@ def send_confirmation_email(to_email, customer_name, line_items, website_name):
 def serve_image(filename):
     return send_from_directory('data/images', filename)
 
+@app.route('/test-email')
+def test_email():
+    dummy_email = 'test@example.com'
+    dummy_name = 'Test User'
+    dummy_items = [
+        {'description': 'Original Cart Total from example.com', 'amount_total': 1500},
+        {'description': 'Enhancement 1', 'amount_total': 500},
+        {'description': 'Enhancement 2', 'amount_total': 500},
+    ]
+    
+    # Mimic Stripe format
+    class DummyItem:
+        def __init__(self, description, amount_total):
+            self.description = description
+            self.amount_total = amount_total
+
+    dummy_line_items = [DummyItem(**item) for item in dummy_items]
+    
+    send_confirmation_email(dummy_email, dummy_name, dummy_line_items, 'Test Site')
+    return "Test email sent (check logs)."
+
 
 
 if __name__ == '__main__':
