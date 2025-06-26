@@ -230,7 +230,7 @@ def serve_image(filename):
 
 @app.route('/test-email')
 def test_email():
-    dummy_email = 'test@example.com'
+    dummy_email = 'jack.baum@gmail.com'
     dummy_name = 'Test User'
     dummy_items = [
         {'description': 'Original Cart Total from example.com', 'amount_total': 1500},
