@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from flask import Flask, jsonify,request,send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -19,19 +20,9 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 def home():
     return "Service Online"  # Basic status check
 
-# Google Sheets configuration
-GSHEET_URL = os.getenv('GOOGLE_SHEET_URL')
-GSHEET_ID = os.getenv('GOOGLE_SHEET_ID')
-GSHEET_API_KEY = os.getenv('GOOGLE_SHEET_API_KEY')  # Optional API key
-
-# Cache configuration
-CACHE_FILE = 'cache/product_cache.json'
-CACHE_TIMEOUT = int(os.getenv('CACHE_TIMEOUT', 3600))
 
 def get_google_sheet_data():
     """Fetch enhancement data from local CSV using pandas"""
-    import os
-    import pandas as pd
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(base_dir, 'data', 'enhancements.csv')
@@ -64,10 +55,6 @@ def get_google_sheet_data():
         print(f"Error reading CSV file: {e}")
         return []
 
-
-
-
-
 @app.route('/api/enhancements', methods=['GET'])
 def get_products():
     """Always fetch fresh data from Google Sheets"""
@@ -76,6 +63,7 @@ def get_products():
         return jsonify(products)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/create-checkout-session', methods=['POST'])
 def create_checkout_session():
@@ -160,9 +148,8 @@ def stripe_webhook():
 
         line_items = stripe.checkout.Session.list_line_items(session['id'])
         send_confirmation_email(customer_email, customer_name, line_items.data, website_name)
-
-
     return '', 200
+
 
 def generate_html_email(customer_name, website_name, customer_items, upsell_items):
     subject = f"Your order summary from {website_name}"
@@ -224,31 +211,10 @@ def send_confirmation_email(to_email, customer_name, line_items, website_name):
     except Exception as e:
         print("Failed to send email:", e)
 
+
 @app.route('/images/<filename>')
 def serve_image(filename):
     return send_from_directory('data/images', filename)
-
-@app.route('/test-email')
-def test_email():
-    dummy_email = 'jack.baum@gmail.com'
-    dummy_name = 'Test User'
-    dummy_items = [
-        {'description': 'Original Cart Total from example.com', 'amount_total': 1500},
-        {'description': 'Enhancement 1', 'amount_total': 500},
-        {'description': 'Enhancement 2', 'amount_total': 500},
-    ]
-    
-    # Mimic Stripe format
-    class DummyItem:
-        def __init__(self, description, amount_total):
-            self.description = description
-            self.amount_total = amount_total
-
-    dummy_line_items = [DummyItem(**item) for item in dummy_items]
-    
-    send_confirmation_email(dummy_email, dummy_name, dummy_line_items, 'Test Site')
-    return "Test email sent (check logs)."
-
 
 
 if __name__ == '__main__':
