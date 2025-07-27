@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from flask import Flask, jsonify,request,send_from_directory
+from flask import Flask, jsonify,request,send_from_directory, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
 import stripe
@@ -150,6 +150,9 @@ def stripe_webhook():
         send_confirmation_email(customer_email, customer_name, line_items.data, website_name)
     return '', 200
 
+@app.route('/rack-page')
+def rack_page():
+    return render_template('rack.html')
 
 def generate_html_email(customer_name, website_name, customer_items, upsell_items):
     subject = f"Your order summary from {website_name}"
