@@ -152,7 +152,7 @@ def stripe_webhook():
 
 @app.route('/rack-page')
 def rack_page():
-    return render_template('rack.html')
+    return render_template('order-enhancement-form.html')
 
 def generate_html_email(customer_name, website_name, customer_items, upsell_items):
     subject = f"Your order summary from {website_name}"
