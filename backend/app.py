@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 load_dotenv()
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-app = Flask(__name__ , template_folder='frontend')
+app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 @app.route('/')
