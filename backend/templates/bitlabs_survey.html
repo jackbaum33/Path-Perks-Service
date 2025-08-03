@@ -1,0 +1,177 @@
+<!-- Upsell + Stripe Checkout Integration -->
+<div id="bitlabs-survey-area" style="margin-bottom: 1rem;"></div>
+
+<div id="upsell-products"></div>
+<div style="margin-top:1em;">
+  <button id="checkout-button" style="padding: 10px 20px;">Continue to Checkout</button>
+</div>
+
+<script>
+const API_URL = "https://revshot-service.onrender.com"; // your backend
+let selectedItems = [];
+
+// Get cart total (in cents) passed from your cart page
+const urlParams = new URLSearchParams(window.location.search);
+const originalTotal = parseInt(urlParams.get('amount')) || 0;
+
+// --- 1) Ask user about survey + email, then start BitLabs ---
+async function maybeOfferSurvey() {
+  const wantsSurvey = confirm("Take a quick survey to save 10% on your order?");
+  if (!wantsSurvey) return;
+
+  let email = prompt("Enter your email to receive the discount if you qualify:");
+  if (!email) return;
+
+  email = email.trim();
+  if (!/\S+@\S+\.\S+/.test(email)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  // Ask backend for public token + userId generated server-side
+  const startRes = await fetch(`${API_URL}/api/bitlabs/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+  const cfg = await startRes.json();
+  if (!cfg.publicToken || !cfg.userId) {
+    console.error("BitLabs start failed:", cfg);
+    alert("Could not start survey. Please try again later.");
+    return;
+  }
+
+  // --- OPEN THE SURVEY ---
+  // Replace URL below with your actual BitLabs Router/SDK link pattern:
+  // For example (placeholder): https://router.bitlabs.ai/?uid={USER_ID}&token={PUBLIC_TOKEN}
+  const surveyUrl = `https://router.bitlabs.ai/?uid=${encodeURIComponent(cfg.userId)}&token=${encodeURIComponent(cfg.publicToken)}`;
+
+  // Display survey in an iframe (simple approach)
+  const holder = document.getElementById("bitlabs-survey-area");
+  holder.innerHTML = `
+    <div style="border:1px solid #ddd; padding:10px; border-radius:8px;">
+      <h3 style="margin:0 0 8px 0;">Survey (earn 10% off)</h3>
+      <iframe id="bitlabs-frame" src="${surveyUrl}" style="width:100%; height:540px; border:0; border-radius:8px;"></iframe>
+      <div style="margin-top:10px; display:flex; gap:10px;">
+        <button id="done-survey" style="padding:8px 14px;">I finished</button>
+        <button id="close-survey" style="padding:8px 14px;">Close</button>
+      </div>
+      <div id="survey-status" style="margin-top:8px; font-size:0.95em;"></div>
+    </div>
+  `;
+
+  // When user clicks “I finished”, we ask the backend if discount is ready
+  document.getElementById("done-survey").addEventListener("click", async () => {
+    const statusRes = await fetch(`${API_URL}/api/discounts/status?email=${encodeURIComponent(email)}`);
+    const status = await statusRes.json();
+    if (status.eligible) {
+      document.getElementById("survey-status").textContent =
+        `✅ Discount applied: ${status.percent}% off will be used at checkout.`;
+      document.getElementById("survey-status").style.color = "green";
+      // Save in memory for this page session
+      window.__PATHPERKS_DISCOUNT__ = status.percent;
+    } else {
+      document.getElementById("survey-status").textContent =
+        "Still processing, or survey not completed yet. Try again in a moment.";
+      document.getElementById("survey-status").style.color = "orange";
+    }
+  });
+
+  document.getElementById("close-survey").addEventListener("click", () => {
+    holder.innerHTML = "";
+  });
+}
+
+// --- 2) Load your enhancements as before ---
+window.addEventListener('DOMContentLoaded', async () => {
+  await maybeOfferSurvey();  // offer survey before listing add-ons
+  loadEnhancements();
+});
+
+async function loadEnhancements() {
+  try {
+    const res = await fetch(`${API_URL}/api/enhancements`);
+    const enhancements = await res.json();
+    const container = document.getElementById("upsell-products");
+
+    enhancements.forEach((item, index) => {
+      const wrapper = document.createElement("div");
+      wrapper.style.margin = "20px 0";
+      wrapper.style.display = "flex";
+      wrapper.style.alignItems = "center";
+      wrapper.style.gap = "1em";
+
+      const img = document.createElement("img");
+      img.src = `${API_URL}/images/${index + 1}.png`;
+      img.alt = item.name;
+      img.style.width = "100px";
+      img.style.height = "auto";
+      img.style.borderRadius = "8px";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `enhancement-${index}`;
+      checkbox.dataset.name = item.name;
+      checkbox.dataset.price = item.price;
+      checkbox.onchange = handleSelection;
+
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      label.innerHTML = `<strong>${item.name}</strong><br><small>${item.description}</small><br><span>$${(item.price / 100).toFixed(2)}</span>`;
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(checkbox);
+      wrapper.appendChild(label);
+      container.appendChild(wrapper);
+    });
+  } catch (e) {
+    console.error("Error loading enhancements", e);
+    document.getElementById("upsell-products").innerText = "Error loading enhancements";
+  }
+}
+
+function handleSelection(e) {
+  const checkbox = e.target;
+  const name = checkbox.dataset.name;
+  const price = parseInt(checkbox.dataset.price, 10);
+
+  if (checkbox.checked) {
+    selectedItems.push({ name, price });
+  } else {
+    selectedItems = selectedItems.filter(i => i.name !== name);
+  }
+}
+
+// --- 3) Checkout: apply discount (if any) by reducing the original total ---
+document.getElementById("checkout-button").addEventListener("click", async () => {
+  try {
+    const siteName = window.location.hostname;
+
+    // Apply 10% discount to originalTotal if eligible
+    const percent = window.__PATHPERKS_DISCOUNT__ || 0;
+    const discountedOriginal = percent > 0
+      ? Math.max(0, Math.round(originalTotal * (1 - percent / 100)))
+      : originalTotal;
+
+    const response = await fetch(`${API_URL}/api/create-checkout-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: selectedItems,
+        originalTotal: discountedOriginal,
+        siteName: siteName
+      })
+    });
+
+    const data = await response.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Checkout failed. Please try again.");
+    }
+  } catch (err) {
+    console.error("Checkout error:", err);
+    alert("An error occurred during checkout.");
+  }
+});
+</script>

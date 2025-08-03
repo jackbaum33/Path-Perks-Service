@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import uuid
 from flask import Flask, jsonify,request,send_from_directory, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -16,10 +17,67 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+BITLABS_PUBLIC_TOKEN = os.getenv("BITLABS_PUBLIC_TOKEN")
+
+USER_BY_ID = {}       
+DISCOUNT_BY_EMAIL = {}
+
 @app.route('/')
 def home():
     return "Service Online"  # Basic status check
 
+
+@app.route("/api/bitlabs/start", methods=["POST"])
+def bitlabs_start():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "email is required"}), 400
+
+    user_id = str(uuid.uuid4())
+    USER_BY_ID[user_id] = {"email": email}
+
+    # Return only the public token + a fresh user_id
+    return jsonify({
+        "publicToken": BITLABS_PUBLIC_TOKEN,
+        "userId": user_id
+    })
+
+# 2) Webhook: BitLabs -> your backend (configure in BitLabs dashboard)
+#    Mark discount eligible when survey is completed.
+@app.route("/api/bitlabs/webhook", methods=["POST"])
+def bitlabs_webhook():
+    # payload format depends on BitLabs; this is a common pattern:
+    # Expect JSON like: {"event":"survey_completed","user_id":"...", ...}
+    payload = request.get_json(silent=True) or {}
+    event = payload.get("event")
+    user_id = payload.get("user_id")
+
+    if not user_id:
+        return jsonify({"status": "ignored", "reason": "missing user_id"}), 400
+
+    user = USER_BY_ID.get(user_id)
+    if not user:
+        return jsonify({"status": "ignored", "reason": "unknown user_id"}), 404
+
+    email = user["email"]
+
+    if event == "survey_completed":
+        DISCOUNT_BY_EMAIL[email] = {"eligible": True, "percent": 10}
+        return jsonify({"status": "ok", "updated": True})
+
+    # Optionally handle other events (e.g., abandoned, disqualified)
+    return jsonify({"status": "ok", "updated": False})
+
+# 3) The frontend can check if the email is eligible for a discount
+@app.route("/api/discounts/status", methods=["GET"])
+def discount_status():
+    email = (request.args.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "email is required"}), 400
+
+    rec = DISCOUNT_BY_EMAIL.get(email, {"eligible": False, "percent": 0})
+    return jsonify(rec)
 
 def get_google_sheet_data():
     """Fetch enhancement data from local CSV using pandas"""
