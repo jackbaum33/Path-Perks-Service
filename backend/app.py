@@ -50,6 +50,7 @@ def bitlabs_webhook():
     # payload format depends on BitLabs; this is a common pattern:
     # Expect JSON like: {"event":"survey_completed","user_id":"...", ...}
     payload = request.get_json(silent=True) or {}
+    print("📦 BitLabs Webhook Payload:", payload)
     event = payload.get("event")
     user_id = payload.get("user_id")
 
