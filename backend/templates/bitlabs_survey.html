@@ -43,8 +43,8 @@ async function maybeOfferSurvey() {
 
   // --- OPEN THE SURVEY ---
   // Replace URL below with your actual BitLabs Router/SDK link pattern:
-  // For example (placeholder): https://router.bitlabs.ai/?uid={USER_ID}&token={PUBLIC_TOKEN}
-  const surveyUrl = `https://router.bitlabs.ai/?uid=${encodeURIComponent(cfg.userId)}&token=${encodeURIComponent(cfg.publicToken)}`;
+  const surveyUrl = `https://web.bitlabs.ai/?uid=${cfg.userId}&token=${cfg.publicToken}`;
+
 
   // Display survey in an iframe (simple approach)
   const holder = document.getElementById("bitlabs-survey-area");
