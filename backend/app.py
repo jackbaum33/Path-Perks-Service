@@ -201,13 +201,56 @@ def stripe_webhook():
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         customer_email = session.get('customer_details', {}).get('email', 'unknown@example.com')
-        customer_name = session.get('customer_details', {}).get('name', 'Valued Customer')  # NEW
+        customer_name = session.get('customer_details', {}).get('name', 'Valued Customer')
         metadata = session.get('metadata', {}) or {}
         website_name = metadata.get('site', 'Your Store')
 
         line_items = stripe.checkout.Session.list_line_items(session['id'])
-        send_confirmation_email(customer_email, customer_name, line_items.data, website_name)
+        items = line_items.data
+
+        send_confirmation_email(customer_email, customer_name, items, website_name)
+
+        # 🚀 Notify internal team if enhancements were selected
+        enhancement_items = [item for item in items if not item.description.lower().startswith('original cart')]
+        if enhancement_items:
+            send_internal_alert(session['id'], enhancement_items)
+
     return '', 200
+
+def send_internal_alert(order_id, enhancements):
+    owner_email = "jack.baum@gmail.com"
+    sender_email = os.getenv('EMAIL_SENDER')
+    sender_password = os.getenv('EMAIL_PASSWORD')
+
+    enhancement_list = "".join(f"<li>{item.description} - ${(item.amount_total / 100):.2f}</li>" for item in enhancements)
+
+    html_body = f"""
+    <html>
+    <body>
+        <p><strong>Action Required:</strong> A new order includes special enhancements.</p>
+        <p><strong>Order ID:</strong> {order_id}</p>
+        <p><strong>Enhancements Selected:</strong></p>
+        <ul>{enhancement_list}</ul>
+        <p>Please prioritize this order accordingly.</p>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart('alternative')
+    msg['From'] = sender_email
+    msg['To'] = owner_email
+    msg['Subject'] = f"🔔 New Order #{order_id} Includes Enhancements"
+    msg.attach(MIMEText(html_body, 'html'))
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, owner_email, msg.as_string())
+        print("Internal alert email sent to", owner_email)
+    except Exception as e:
+        print("Failed to send internal alert email:", e)
+
+
 
 @app.route('/rack-page')
 def rack_page():

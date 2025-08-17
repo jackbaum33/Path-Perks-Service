@@ -1,5 +1,14 @@
 <!-- Upsell + Stripe Checkout Integration -->
+<!-- Bundle All Checkbox -->
+<div style="margin-bottom: 1em;">
+  <input type="checkbox" id="bundle-all" />
+  <label for="bundle-all"><strong>Bundle all</strong></label>
+</div>
+
+<!-- Product List -->
 <div id="upsell-products"></div>
+
+<!-- Checkout Button -->
 <button id="checkout-button" style="margin-top: 1em; padding: 10px 20px;">Continue to Checkout</button>
 
 <script>
@@ -37,6 +46,7 @@ async function loadEnhancements() {
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
+      checkbox.classList.add("enhancement-checkbox");
       checkbox.id = `enhancement-${index}`;
       checkbox.dataset.name = item.name;
       checkbox.dataset.price = item.price;
@@ -51,6 +61,17 @@ async function loadEnhancements() {
       wrapper.appendChild(label);
       container.appendChild(wrapper);
     });
+
+    // Bundle all logic
+    const bundleAllCheckbox = document.getElementById("bundle-all");
+    bundleAllCheckbox.addEventListener("change", () => {
+      const checkboxes = container.querySelectorAll("input[type='checkbox']");
+      checkboxes.forEach((box) => {
+        box.checked = bundleAllCheckbox.checked;
+        box.dispatchEvent(new Event("change")); // trigger selection logic
+      });
+    });
+
   } catch (e) {
     console.error("Error loading enhancements", e);
     document.getElementById("upsell-products").innerText = "Error loading enhancements";
@@ -62,12 +83,15 @@ function handleSelection(e) {
   const name = checkbox.dataset.name;
   const price = parseInt(checkbox.dataset.price);
 
+  // Always remove item first (whether checked or unchecked)
+  selectedItems = selectedItems.filter(i => i.name !== name);
+
+  // Re-add only if checkbox is checked
   if (checkbox.checked) {
     selectedItems.push({ name, price });
-  } else {
-    selectedItems = selectedItems.filter(i => i.name !== name);
   }
 }
+
 
 document.getElementById("checkout-button").addEventListener("click", async () => {
   try {
